@@ -1,0 +1,235 @@
+---
+title: "A4_R_Code"
+author: "Advait Shah"
+date: "12/02/2023"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r}
+
+#a = read.csv(file.choose())
+
+a = read.csv("Case5-data.csv")
+```
+
+```{r}
+head(a)
+
+```
+```{r}
+days=c("Mon", "Tue", "Wed", "Thu", "Fri")
+for (i in 1:5){
+    df2=a[a[,2]==days[i],]
+    print(hist(df2[,"Actual"],main = paste("Histogram of" , days[i])))
+}
+
+```
+
+
+
+```{r}
+#make this example reproducible
+set.seed(1)
+
+#use 80% of dataset as training set and 20% as test set
+sample <- sample(c(TRUE, FALSE), nrow(a), replace=TRUE, prob=c(0.8,0.2))
+train  <- a[sample, ]
+test   <- a[!sample, ]
+
+t5_model = lm(Actual~T...5, train)
+print(paste("T-5 based model R-Squared:",summary(t5_model)$r.squared))
+print(paste("T-5 based model MSE:",mean((test$Actual - predict.lm(t5_model, test)) ^ 2)))
+plot(train$T...5,train$Actual)
+abline(t5_model, col = "blue")
+
+t6_model = lm(Actual~T...6, train)
+print(paste("T-6 based model R-Squared:",summary(t6_model)$r.squared))
+print(paste("T-6 based model MSE:",mean((test$Actual - predict.lm(t6_model, test)) ^ 2)))
+plot(train$T...6,train$Actual)
+abline(t6_model, col = "blue")
+
+t7_model = lm(Actual~T...7, train)
+print(paste("T-7 based model R-Squared:",summary(t7_model)$r.squared))
+print(paste("T-7 based model MSE:",mean((test$Actual - predict.lm(t7_model, test)) ^ 2)))
+plot(train$T...7,train$Actual)
+abline(t7_model, col = "blue")
+
+t8_model = lm(Actual~T...8, train)
+print(paste("T-8 based model R-Squared:",summary(t8_model)$r.squared))
+print(paste("T-8 based model MSE:",mean((test$Actual - predict.lm(t8_model, test)) ^ 2)))
+plot(train$T...8,train$Actual)
+abline(t8_model, col = "blue")
+
+t9_model = lm(Actual~T...9, train)
+print(paste("T-9 based model R-Squared:",summary(t9_model)$r.squared))
+print(paste("T-9 based model MSE:",mean((test$Actual - predict.lm(t9_model, test)) ^ 2)))
+plot(train$T...9,train$Actual)
+abline(t9_model, col = "blue")
+
+```
+[1] "T-5 based model R-Squared: 0.827860438875018"
+[1] "T-5 based model MSE: 41.6998887704155"
+[1] "T-6 based model R-Squared: 0.819831417075027"
+[1] "T-6 based model MSE: 40.7105698327936"
+[1] "T-7 based model R-Squared: 0.81812575168335"
+[1] "T-7 based model MSE: 47.9691965433956"
+[1] "T-8 based model R-Squared: 0.808648102575112"
+[1] "T-8 based model MSE: 58.2459247847008"
+[1] "T-9 based model R-Squared: 0.785580610181517"
+[1] "T-9 based model MSE: 66.1200884449541"
+
+As we can see, T-5 and T-6 gives the least mean square error in predicting the actual surgeries when tested on the test dataset. whereas, T-7, T-8, T-9 predictors based model gave comparatively higher prediction error. So, we could argue that it is a trade off between accuracy level and prediction timing.
+We also plotted the best fit linear regression models based on each of these predictors, and calculated R-Squared values. It also suggests that linear regression model could be best fit on the T-5 and T-6 based predictors and thus, they gave better R-square values compared to T-7, T-8, T-9 predictors. This also explains why we have better prediction accuracy with T-5 and T-6 based models, as their linear regression models are more robust due to less bias in training dataset.
+
+I would suggest T-6 based model to be used for predictions, because it has high prediction accuracy as well as team will have this information 6 days in advance of surgery, which would be sufficient in planning the schedule accurately about 6 days in advance of actual surgery days.
+
+
+```{r}
+
+# checking correlation between raw predictors
+cor(a[,3:19])
+
+```
+
+This suggests predictors are highly correlated
+
+```{r}
+
+
+#transforming columns to reduce correlation and create new predictors
+df = data.frame(a$DOW,a$Actual)
+for (i in 3:18){
+  df[,i] <- a[,i+1] - a[,i]
+}
+
+head(df)
+
+```
+
+```{r}
+
+cor(df[,2:18])
+
+```
+the predictors are not correlated now, and hence we will include all of these predictors in our actual surgeries linear regression prediction.
+
+```{r}
+#removing DOW from df for model 1
+
+df1 = df[c(-1)]
+head(df1)
+
+model_1_not_str = lm(a.Actual~., df1)
+
+summary(model_1_not_str)
+
+```
+
+
+So, we are getting 74.93 R-squared value in this linear regression fit.
+But, this model would not be much helpful in predicting surgeries in advance, because its predictors require data of daily addition in scheduled surgeries even close to surgery day.
+
+
+```{r}
+
+# model 2: Stratified by the day of the week
+
+DOW = c("Mon","Tue","Wed","Thu","Fri")
+
+for (i in 1:5){
+  df2 = df[df[,1]==DOW[i],]
+  df2 = df2[c(-1)]
+  model1 = lm(a.Actual~., df2)
+  print(paste(DOW[i],"Multiple LR model R-squared value:",summary(model1)$r.squared))
+  
+}
+
+
+```
+
+Other Possible Models as discussed in the lecture: 
+
+Model 1 : Does not stratify by day of the week and use just T-7 as predictor
+
+```{r}
+t7_model = lm(Actual~T...7, a)
+print(paste("T-7 based LR model R-squared value:",summary(t7_model)$r.squared))
+
+```
+
+Model 2 : Includes day of the week as dummy variables
+
+
+```{r}
+t7d_model = lm(Actual~T...7+DOW, a)
+print(paste("T-7+DOW based LR model R-squared value:",summary(t7d_model)$r.squared))
+
+```
+
+Model 3 : stratify by day of the week and use just T-7 as predictor
+
+```{r}
+DOW = c("Mon","Tue","Wed","Thu","Fri")
+
+for (i in 1:5){
+  df3 = a[a[,2]==DOW[i],]
+  t7s_model = lm(Actual~T...7, df3)
+  print(paste(DOW[i],"stratified T-7 based LR model R-squared value:",summary(t7s_model)$r.squared))
+  
+}
+```
+
+################################
+
+Now, consider the surgery (actual) date as a time series with September 4th to September 14th as the testing set and the rest as the training set. Fit a Moving Average (MA) model to the time series and visualize it.
+
+```{r}
+library(dplyr)
+library(magrittr)
+a %<>%
+  mutate(SurgDate= as.Date(SurgDate, format= "%d-%m-%Y"))
+```
+
+```{r}
+
+train <- subset(a, SurgDate < "2012-09-04")
+test <- subset(a, SurgDate >= "2012-09-04")
+
+tail(train)
+
+```
+
+
+```{r}
+library(zoo)
+
+
+s <- a %>%
+  select(SurgDate, srate = Actual) %>%
+  mutate(srate_tma = rollmean(srate, k = 3, fill = NA, align = "right"))
+
+
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(s, aes(SurgDate,srate)) +
+  geom_line() +
+  theme_minimal()
+
+```
+
+```{r}
+# let's use T-6 based model, which had given us least MSE of prediction on test data
+summary(t6_model)
+
+print(paste("T-6 based model MSE:",mean((test$Actual - predict.lm(t6_model, test)) ^ 2)))
+
+```
+
+
+
